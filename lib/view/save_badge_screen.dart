@@ -49,34 +49,18 @@ class _SaveBadgeScreenState extends State<SaveBadgeScreen> {
     super.dispose();
   }
 
-  // Function to load a saved badge for editing
-  Future<void> _loadBadgeForEditing(String filename) async {
-    final savedBadgeData = await savedBadgeProvider.loadBadgeDataForEditing(filename);
-    if (savedBadgeData.isNotEmpty) {
-      // Navigate to the badge editor screen with the loaded data
-      // Replace `BadgeEditorScreen` with the actual screen for editing badges
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => BadgeEditorScreen(
-            initialData: savedBadgeData,
-            onSave: (updatedData) async {
-              // Save the updated badge
-              await savedBadgeProvider.editBadgeData(
-                filename,
-                updatedData['message'],
-                updatedData['flash'],
-                updatedData['marquee'],
-                updatedData['invert'],
-                updatedData['speed'],
-                updatedData['animation'],
-              );
-              setState(() {}); // Refresh the UI
-            },
-          ),
+  // Function to handle editing a saved badge
+  void _editSavedBadge(String filename, Map<String, dynamic> badgeData) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DrawBadge(
+          filename: filename,
+          isSavedCard: true,
+          initialData: badgeData, // Pass saved badge data for editing
         ),
-      );
-    }
+      ),
+    );
   }
 
   @override
@@ -153,8 +137,8 @@ class _SaveBadgeScreenState extends State<SaveBadgeScreen> {
                       setState(() {});
                       return Future.value();
                     },
-                    onEdit: (filename) async {
-                      await _loadBadgeForEditing(filename);
+                    onEdit: (filename, badgeData) {
+                      _editSavedBadge(filename, badgeData); // Handle editing
                     },
                   ),
                 ],
