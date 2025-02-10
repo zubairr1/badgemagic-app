@@ -3,22 +3,28 @@ import 'package:badgemagic/bademagic_module/utils/file_helper.dart';
 import 'package:badgemagic/bademagic_module/utils/toast_utils.dart';
 import 'package:badgemagic/constants.dart';
 import 'package:badgemagic/providers/draw_badge_provider.dart';
+import 'package:badgemagic/providers/saved_badge_provider.dart';
 import 'package:badgemagic/view/widgets/common_scaffold_widget.dart';
 import 'package:badgemagic/virtualbadge/view/draw_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 class DrawBadge extends StatefulWidget {
   final String? filename;
   final bool? isSavedCard;
   final bool? isSavedClipart;
   final List<List<int>>? badgeGrid;
-  const DrawBadge(
-      {super.key,
-      this.filename,
-      this.isSavedCard = false,
-      this.isSavedClipart = false,
-      this.badgeGrid});
+  final Map<String, dynamic>? initialData; // Add this for editing
+
+  const DrawBadge({
+    super.key,
+    this.filename,
+    this.isSavedCard = false,
+    this.isSavedClipart = false,
+    this.badgeGrid,
+    this.initialData, // Add this for editing
+  });
 
   @override
   State<DrawBadge> createState() => _DrawBadgeState();
@@ -26,11 +32,18 @@ class DrawBadge extends StatefulWidget {
 
 class _DrawBadgeState extends State<DrawBadge> {
   var drawToggle = DrawBadgeProvider();
+  late SavedBadgeProvider savedBadgeProvider;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _setLandscapeOrientation();
+    savedBadgeProvider = Provider.of<SavedBadgeProvider>(context);
+
+    // Load initial data if editing
+    if (widget.initialData != null) {
+      _loadInitialData(widget.initialData!);
+    }
   }
 
   @override
@@ -43,6 +56,14 @@ class _DrawBadgeState extends State<DrawBadge> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+  }
+
+  // Load initial data for editing
+  void _loadInitialData(Map<String, dynamic> initialData) {
+    final badgeGrid = initialData['messages'][0]['text']
+        .map((e) => e.map((e) => e == 1).toList())
+        .toList();
+    drawToggle.setDrawViewGrid(badgeGrid);
   }
 
   @override
@@ -150,7 +171,7 @@ class _DrawBadgeState extends State<DrawBadge> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () {
+                        onPressed: () async {
                           List<List<int>> badgeGrid = drawToggle
                               .getDrawViewGrid()
                               .map((e) => e.map((e) => e ? 1 : 0).toList())
@@ -158,18 +179,43 @@ class _DrawBadgeState extends State<DrawBadge> {
                           List<String> hexString =
                               Converters.convertBitmapToLEDHex(
                                   badgeGrid, false);
-                          widget.isSavedCard!
-                              ? fileHelper.updateBadgeText(
-                                  widget.filename!,
-                                  hexString,
-                                )
-                              : widget.isSavedClipart!
-                                  ? fileHelper.updateClipart(
-                                      widget.filename!, badgeGrid)
-                                  : fileHelper
-                                      .saveImage(drawToggle.getDrawViewGrid());
+
+                          if (widget.isSavedCard!) {
+                            if (widget.filename != null) {
+                              // Update existing badge
+                              await savedBadgeProvider.editBadgeData(
+                                widget.filename!,
+                                hexString.join(), // Convert to text
+                                widget.initialData?['messages'][0]['flash'] ??
+                                    false,
+                                widget.initialData?['messages'][0]['marquee'] ??
+                                    false,
+                                widget.initialData?['messages'][0]['invert'] ??
+                                    false,
+                                widget.initialData?['messages'][0]['speed'] ??
+                                    1,
+                                widget.initialData?['messages'][0]['mode'] ??
+                                    0,
+                              );
+                              ToastUtils().showToast("Badge Updated Successfully");
+                            } else {
+                              // Save new badge
+                              await fileHelper.updateBadgeText(
+                                widget.filename!,
+                                hexString,
+                              );
+                              ToastUtils().showToast("Badge Saved Successfully");
+                            }
+                          } else if (widget.isSavedClipart!) {
+                            await fileHelper.updateClipart(
+                                widget.filename!, badgeGrid);
+                            ToastUtils().showToast("Clipart Saved Successfully");
+                          } else {
+                            await fileHelper.saveImage(drawToggle.getDrawViewGrid());
+                            ToastUtils().showToast("Image Saved Successfully");
+                          }
+
                           fileHelper.generateClipartCache();
-                          ToastUtils().showToast("Clipart Saved Successfully");
                         },
                         child: const Column(
                           children: [
