@@ -57,6 +57,27 @@ class SavedBadgeProvider extends ChangeNotifier {
     );
     fileHelper.saveBadgeData(
         data, filename, isInvert); //needs AniEffectProvider
+    setIsSavedBadgeData(true); // Notify that the badge has been saved/updated
+  }
+
+  void editBadgeData(String filename, String newMessage, bool newIsFlash,
+      bool newIsMarquee, bool newIsInvert, int? newSpeed, int newAnimation) async {
+    Data data = await getBadgeData(
+      newMessage,
+      newIsFlash,
+      newIsMarquee,
+      newIsInvert,
+      speedMap[newSpeed] ?? Speed.one,
+      modeValueMap[newAnimation]!,
+    );
+    fileHelper.saveBadgeData(data, filename, newIsInvert);
+    setIsSavedBadgeData(true); // Notify that the badge has been updated
+  }
+
+  Future<Map<String, dynamic>> loadBadgeDataForEditing(String filename) async {
+    Map<String, dynamic> data = await fileHelper.loadBadgeData(filename);
+    setSavedBadgeDataMap(data); // Store the loaded data for editing
+    return data;
   }
 
   Future<Data> getBadgeData(String text, bool flash, bool marq, bool isInverted,
