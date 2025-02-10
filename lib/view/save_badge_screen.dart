@@ -49,6 +49,36 @@ class _SaveBadgeScreenState extends State<SaveBadgeScreen> {
     super.dispose();
   }
 
+  // Function to load a saved badge for editing
+  Future<void> _loadBadgeForEditing(String filename) async {
+    final savedBadgeData = await savedBadgeProvider.loadBadgeDataForEditing(filename);
+    if (savedBadgeData.isNotEmpty) {
+      // Navigate to the badge editor screen with the loaded data
+      // Replace `BadgeEditorScreen` with the actual screen for editing badges
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BadgeEditorScreen(
+            initialData: savedBadgeData,
+            onSave: (updatedData) async {
+              // Save the updated badge
+              await savedBadgeProvider.editBadgeData(
+                filename,
+                updatedData['message'],
+                updatedData['flash'],
+                updatedData['marquee'],
+                updatedData['invert'],
+                updatedData['speed'],
+                updatedData['animation'],
+              );
+              setState(() {}); // Refresh the UI
+            },
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -122,6 +152,9 @@ class _SaveBadgeScreenState extends State<SaveBadgeScreen> {
                       provider.savedBadgeCache.remove(value);
                       setState(() {});
                       return Future.value();
+                    },
+                    onEdit: (filename) async {
+                      await _loadBadgeForEditing(filename);
                     },
                   ),
                 ],
